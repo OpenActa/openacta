@@ -1,0 +1,66 @@
+Grammar of the OpenActa Instruction Language, version 1.0
+=========================================================
+Copyright (C) 2023 Arjen Lentz & Lentz Pty Ltd; All Rights Reserved
+<arjen (at) openacta (dot) dev>
+
+The OpenActa documentation is licensed under a CC-BY-SA license.
+https://creativecommons.org/licenses/by-sa/4.0/
+
+
+This document describes the instruction language that an OpenActa Server
+accepts. A server is instructed to try and find specific data, which can
+subsequently be manipulated before being served back to the client (in JSON).
+
+Note that OpenActa is not a general purpose database system, and specifically
+it does not follow SQL syntax (even though it may somewhat look like it).
+The OpenActa grammar was chosen deliberately to make this distinction clear.
+
+The foundational considerations were that the instruction language should be
+straightforward to create and read, grammatically sensible English (normal
+reading order, left to right), and be divided in "line chunks" similar to what
+*nix systems use with their pipe (|) symbol to separate commands.
+
+This way, a user (or script) can control what gets done (and in what order).
+The user has to keep in mind that an optimiser may re-order and parallelise
+command chunks as it sees fit (provided it delivers a similar outcome to the
+non-optimised instructions), however this should not require any particular
+effort. The capability to parallelise and optimise is inherent to the
+instruction language, and the backend storage (Haystack).
+
+Review the following example:
+
+    FIND dest_ip MATCHING src_ip LIKE "192.168.%" SINCE LAST WEEK
+    | GROUP src_ip CONTAINING SUM(dest_ip) sum_dest_ip
+    | SORT dest_ip
+
+The initial instruction (FIND) might be distributed across multiple backend
+CPU cores (or even machines), depending on where the data "since yesterday"
+resides (it can be across multiple Haystacks). This parallelisation can
+vastly speed up instructions.
+If the second (FIND) instruction is performed on multiple machines, it will
+need to be combined first before any grouping can be applied. Similarly,
+the third and final instruction (SORT) can only be performed on the full
+result.
+
+Another example, specifying a temporal range other than the "now" which was
+implicit in the previous instructions:
+
+    FIND src_ip,dst_ip MATCHING dest_port=443 BETWEEN 1 AND 3 MONTHS AGO
+
+OpenActa's storage system Haystack is strongly temporal, and this is also
+reflected in the instruction language: the temporal parameters are issued
+separately from other conditions and must always be present. Thus, it is
+strongly encouraged to specify a restrictive temporal range in each query.
+"SINCE FOREVER" is valid, however the user can expect it to be very slow.
+Similarly, requesting ALL fields from Haystack bunches is inefficient in
+terms of processing, memory usage and retrieval speed, and accordingly
+discouraged as well: its use should be restricted to exploratory ad-hoc
+queries, not automated scripts. Instructions that don't contain appropriate
+restrictions are automatically restricted to 1000 result lines by the server.
+
+The latest data is not instantly available for search. It can not be expected
+that an instruction retrieving the very latest data produce a consistent result.
+
+
+
+EOF
