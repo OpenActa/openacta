@@ -25,31 +25,36 @@ import (
 
 /*
 We use a small hand-crafted regex-based lexer.
-The symbol and token tables are in lexer_symbols.go
+The regex, symbol and token tables are in lexer_symbols.go
 */
 
-// token lexer using regular expressions
-func lexer(s string) ([]lexer_token, error) {
-	linecomment_pattern := regexp.MustCompile("//{.}\n")
-	blockcomment_pattern := regexp.MustCompile(`/\*{.|\*}\*/`)
-	whitespace_pattern := regexp.MustCompile(" \t\r\n")
+// The Go runtime will execute this once at startup, before calling main()
+func init() {
+	// Compile spacing and comments regexes
+	for i := range lexer_pre_table {
+		lexer_pre_table[i].compiled = regexp.MustCompile(lexer_pre_table[i].regex)
+	}
 
-	// first get rid of comment fluff, and make single-spaced
-	s = linecomment_pattern.ReplaceAllLiteralString(s, " ")
-	s = blockcomment_pattern.ReplaceAllLiteralString(s, " ")
-	s = whitespace_pattern.ReplaceAllLiteralString(s, " ")
-	// Remove leading and trailing whitespaces
-	s = strings.TrimSpace(s)
-
-	// Compile our regexes
+	// Compile our syntax regexes
 	for i := range lexer_regex_table {
 		lexer_regex_table[i].compiled = regexp.MustCompile(lexer_regex_table[i].regex)
 	}
+}
+
+// token lexer using regular expressions
+func lexer(s string) ([]lexer_token, error) {
+	// first get rid of comment fluff, and take out special spacing and CR/LF
+	for i := range lexer_pre_table {
+		s = lexer_pre_table[i].compiled.ReplaceAllLiteralString(s, lexer_pre_table[i].replace)
+	}
+
+	// Remove leading and trailing whitespaces
+	s = strings.TrimSpace(s)
 
 	// Tokenise the statement
 	var tokens []lexer_token
 
-	// Tokenise statement (s)
+	// Tokenise statement(s)
 	for len(s) > 0 {
 		// Try match each regular expression pattern, in order
 		match := false
@@ -69,7 +74,7 @@ func lexer(s string) ([]lexer_token, error) {
 						newtoken.token = token
 					} else {
 						// This can only happen if someone stuffs up in the lexer_symbols.go file
-						return nil, fmt.Errorf("unknown token '%s' in lexer symbol table", result)
+						return nil, fmt.Errorf("lexer: token '%s' from regex table unknown in symbol table", result)
 					}
 				}
 
@@ -78,8 +83,9 @@ func lexer(s string) ([]lexer_token, error) {
 
 				tokens = append(tokens, newtoken)
 
-				s = strings.TrimSpace(lexer_regex_table[i].compiled.ReplaceAllString(s, ""))
-				match = true
+				s = lexer_regex_table[i].compiled.ReplaceAllString(s, "") // remove this token
+				s = strings.TrimSpace(s)                                  // remove surrounding whitespace (if applicable)
+				match = true                                              // we found a match
 				break
 			}
 		}
