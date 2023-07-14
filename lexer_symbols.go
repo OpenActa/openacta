@@ -24,8 +24,26 @@ We use a small hand-crafted regex-based lexer (lexer.go).
 If you want to add commands or functions, this file is where you need to start.
 As you see, there are multiple tables you need to add to.
 Any keyword or operator in a regex needs to also be added to the symbol tables in this file
+*/
 
-The tags are for debugging purposes, so we can tell which regex a match comes from.
+type lexer_pre struct {
+	regex    string
+	replace  string
+	compiled *regexp.Regexp
+}
+
+// Taking out line comments, block comments and distinct spacing.
+// The order of these regexes can be important, so we have to use a Go slice rather than a map!
+// Add new entries with care.
+var lexer_pre_table = []lexer_pre{
+	{regex: "//{.}\n", replace: " "},
+	{regex: `/\*{.|\*}\*/`, replace: " "},
+	{regex: "[\t\r\n]", replace: " "},
+}
+
+/*
+The tags are mainly for debugging purposes, so we can tell which regex a match comes from.
+However, they are also used by the parser.
 */
 
 type lexer_regex struct {
@@ -38,7 +56,8 @@ type lexer_regex struct {
 // Add new entries with care.
 var lexer_regex_table = []lexer_regex{
 	{tag: "command", regex: `(?i)^FIND\b`},
-	{tag: "command2", regex: `(?i)^SORT|GROUP|DISTINCT|ALL\b`},
+	{tag: "cmdspec", regex: `(?i)^ALL\b`},
+	{tag: "command2", regex: `(?i)^SORT|GROUP|DISTINCT\b`},
 	{tag: "pipe", regex: `^[|]`},
 	{tag: "condition", regex: `(?i)^MATCHING\b`},
 	// temporal base
@@ -51,15 +70,16 @@ var lexer_regex_table = []lexer_regex{
 	{tag: "calendars", regex: `(?i)^(DAYS|WEEKS|FORTNIGHTS|MONTHS|QUARTERS|YEARS|CENTURIES)\b`},
 	{tag: "weekday", regex: `(?i)^(MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\b`},
 	{tag: "weekdays", regex: `(?i)^(MONDAYS|TUESDAYS|WEDNESDAYS|THURSDAYS|FRIDAYS|SATURDAYS|SUNDAYS)\b`},
+	{tag: "mon", regex: `(?i)^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)`},
+	{tag: "months", regex: `(?i)^(JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER)`},
 	{tag: "string", regex: `^('[^']*'|"[^"]*")`},              // strings (single or double quotes)
 	{tag: "ident", regex: `^([a-zA-Z_][a-zA-Z_.@$]*)`},        // identifiers
 	{tag: "int", regex: `^([-+]?\d+([eE]+?\d+)?)`},            // integers, optional E notation
 	{tag: "float", regex: `^([-+]?\d*\.?\d+([eE][-+]?\d+)?)`}, // floating point values
-
+	// comma and parentheses
 	{tag: "comma", regex: `^,`},    // comma
 	{tag: "lparen", regex: `^[(]`}, // opening parenthesis
 	{tag: "rparen", regex: `^[)]`}, // closing parenthesis
-
 	// Binary operands
 	{tag: "minus", regex: `^-`},           // minus
 	{tag: "plus", regex: `^[+]`},          // plus
@@ -77,7 +97,7 @@ var lexer_regex_table = []lexer_regex{
 	{tag: "or", regex: `(?i)^OR\b`},   // OR
 	// Unary operator
 	{tag: "not", regex: `(?i)^(!|NOT)\b`}, // NOT
-
+	// pattern matcher
 	{tag: "like", regex: `(?i)^LIKE\b`}, // LIKE
 }
 
@@ -116,6 +136,18 @@ const (
 	sym_friday
 	sym_saturday
 	sym_sunday
+	sym_january
+	sym_february
+	sym_march
+	sym_april
+	sym_may
+	sym_june
+	sym_july
+	sym_august
+	sym_september
+	sym_october
+	sym_november
+	sym_december
 	sym_comma
 	sym_lparen
 	sym_rparen
@@ -158,8 +190,18 @@ var lexer_symbol_table = map[string]int{
 	"QUARTERS": sym_quarter, "YEARS": sym_year, "CENTURIES": sym_century,
 	"MONDAY": sym_monday, "TUESDAY": sym_tuesday, "WEDNESDAY": sym_wednesday,
 	"MONDAYS": sym_monday, "TUESDAYS": sym_tuesday, "WEDNESDAYS": sym_wednesday,
-	"THURSDAY": sym_thursday, "FRIDAY": sym_friday, "SATURDAY": sym_saturday, "SUNDAY": sym_sunday,
-	"THURSDAYS": sym_thursday, "FRIDAYS": sym_friday, "SATURDAYS": sym_saturday, "SUNDAYS": sym_sunday,
+	"THURSDAY": sym_thursday, "FRIDAY": sym_friday,
+	"SATURDAY": sym_saturday, "SUNDAY": sym_sunday,
+	"THURSDAYS": sym_thursday, "FRIDAYS": sym_friday,
+	"SATURDAYS": sym_saturday, "SUNDAYS": sym_sunday,
+	"JAN": sym_january, "FEB": sym_february, "MAR": sym_march,
+	"APR": sym_april, "MAY": sym_may, "JUN": sym_june,
+	"JUL": sym_july, "AUG": sym_august, "SEP": sym_september,
+	"OCT": sym_october, "NOV": sym_november, "DEC": sym_december,
+	"JANUARY": sym_january, "FEBUARY": sym_february, "MARCH": sym_march,
+	"APRIL": sym_april /* MAY dup */, "JUNE": sym_june,
+	"JULY": sym_july, "AUGUST": sym_august, "SEPTEMBER": sym_september,
+	"OCTOBER": sym_october, "NOVEMBER": sym_november, "DECEMBER": sym_december,
 	// Operators
 	",": sym_comma, "(": sym_lparen, ")": sym_rparen,
 	"-": sym_minus, "+": sym_plus,

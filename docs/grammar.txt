@@ -63,4 +63,158 @@ that an instruction retrieving the very latest data produce a consistent result.
 
 
 
+Formal definition
+=================
+
+Comments
+--------
+/* block comments */
+ and
+// line comments
+ are accepted and replaced with " " by the lexer, thus invisible to the parser
+
+Grammar in Extended Backus–Naur Form (EBNF) below
+https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form
+
+For operator precedence, see:
+https://en.wikipedia.org/wiki/Order_of_operations
+
+
+Primary statement
+-----------------
+
+<syntax> = <stmt> <stmt-list> [ <matching-cond> ]
+             { "|" <stmt2> ( <params> | <expr> [...] ) }
+
+<stmt> = FIND
+
+<stmt-list> = ALL
+            | ( <stmt-sublist> [ { <comma <stmt-sublist> } ] )
+
+<stmt-sublist> = <derived-key>
+            | ( <key-prefix> <period> <asterisk> )
+
+<derived-key> = <val-expr> [ <as-clause> ]
+
+<as-clause> = AS <key-name>
+
+<val-expr> = <num-val-expr>
+            | <string-val-expr>
+
+<num-val-expr> = <term>
+            | <num-val-expr> <plus-sign> <term>
+            | <num-val-expr> <minus-sign> <term>
+
+<term> = <factor>
+            | <term> <asterisk> <factor>
+            | <term> ( <solidus> | "DIV" ) <factor>
+            | <term> ( <percent> | "MOD" ) <factor>
+
+<factor> = [ <sign> ] <num-primary>
+
+<num-primary> = <val-expr-primary>
+
+<val-expr-primary> = <unsigned-val-spec>
+            | <key-ref>
+            | ( <left-paren> <val-expr> <right-paren> )
+
+<unsigned-val-spec> = <unsigned-literal>
+
+<key-ref> = [ <key-prefix> <period> ] <key-name>
+
+<unsigned-literal> := <num-val>
+
+<val-expr> = <num-val>
+            | <string-val>
+
+<num-val> = [ <sign> ] ( <int-literal> | <float-literal> )
+
+
+Matching conditions (matching-cond)
+-----------------------------------
+
+<matching-cond> = MATCHING <search-cond>
+
+<search-cond> = <boolean-term>
+            | ( <search-cond> OR <boolean-term> )
+
+<boolean-term> = <boolean-factor>
+            | ( <boolean-term> AND <boolean-factor>  )
+
+<boolean-factor> = [ NOT ] <boolean-primary>
+
+<boolean-primary> = <predicate>
+            | <left-paren> <search-cond> <right-paren>
+
+<predicate> = <comparison-predicate>
+            | <between-predicate>
+            | <in-predicate>
+            | <like-predicate>
+
+<comparison-predicate> = <val-expr> <comp-op> <val-expr>
+
+<comp-op> = <equals-op>
+            | <not-equals-op>
+            | <less-than-op>
+            | <greater-than-op>
+            | <less-than-or-equals-op>
+            | <greater-than-or-equals-op>
+
+row-val-constructor -> val-expr
+
+<between-predicate> = [ NOT ] BETWEEN <val-expr> AND <val-expr>
+
+<in-predicate> = <val-expr> [ NOT ] IN <in-predicate-val>
+
+<in-predicate-val> = <lparen> <in-val-list> <rparen>
+
+<in-val-list> = <val-expr> { <comma> <val-expr> } ...
+
+<like-predicate> = <match-val> [ NOT ] LIKE <pattern>
+
+<match-val> = <char-val-expr>
+
+<pattern> = <char-val-expr>
+
+<char-val-expr> = <val-expr-primary> | <string-val-funct>
+
+
+
+
+Temporal conditions (temp-cond)
+-------------------------------
+
+<temp-cond> = SINCE <temp-ref>
+            | BETWEEN <temp-ref> AND <temp-ref>
+
+<temp-ref> = ( <int-literal> DAYS AGO ) 
+            | ( [ DAY BEFORE ] YESTERDAY )
+            | FOREVER
+            | [ LAST ] ( <clock-ref>
+                    | <weekday-ref>
+                    | <month-ref>
+                    | <calendar-ref> ) [ BEFORE LAST ]
+
+<clock-ref> = SECOND | MINUTE | HOUR
+            | SECONDS | MINUTES | HOURS
+
+<weekday-ref> = MONDAY | TUESDAY | WEDNESDAY | THURSDAY | FRIDAY | SATURDAY | SUNDAY
+            | MONDAYS | TUESDAYS | WEDNESDAYS | THURSDAYS | FRIDAYS | SATURDAYS | SUNDAYS
+
+<month-ref> = JANUARY | FEBRUARY | MARCH | APRIL | MAY | JUNE
+            | JULY | AUGUST | SEPTEMBER | OCTOBER | NOVEMBER | DECEMBER
+            | JAN | FEB | MAR | APR | JUN | JUL | AUG | SEP | OCT | NOV | DEC
+
+<calendar-ref> = DAY | WEEK | FORTNIGHT | MONTH | QUARTER | YEAR | CENTURY
+            | DAYS | WEEKS | FORTNIGHTS | MONTHS | QUARTERS | YEARS | CENTURIES
+
+
+Secondary statements (stmt2)
+----------------------------
+
+<stmt2> = SORT
+        | GROUP
+        | DISTINCT
+
+
 EOF
