@@ -187,13 +187,16 @@ Temporal conditions (temp-cond)
 <temp-cond> = SINCE <temp-ref>
             | BETWEEN <temp-ref> AND <temp-ref>
 
-<temp-ref> = ( <int-literal> DAYS AGO ) 
-            | ( [ DAY BEFORE ] YESTERDAY )
-            | FOREVER
-            | [ LAST ] ( <clock-ref>
-                    | <weekday-ref>
-                    | <month-ref>
-                    | <calendar-ref> ) [ BEFORE LAST ]
+<temp-ref> = FOREVER
+            | [ DAY BEFORE ] YESTERDAY
+            | LAST <reltime-ref>
+            | <reltime-ref> BEFORE LAST
+            | <int-literal> <reltime-ref> AGO
+
+<reltime-ref> = <clock-ref>
+            | <weekday-ref>
+            | <month-ref>
+            | <calendar-ref>
 
 <clock-ref> = SECOND | MINUTE | HOUR
             | SECONDS | MINUTES | HOURS
