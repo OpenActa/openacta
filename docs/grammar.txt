@@ -71,7 +71,7 @@ Comments
 /* block comments */
  and
 // line comments
- are accepted and replaced with " " by the lexer, thus invisible to the parser
+ are accepted. They and line breaks are replaced with " " by the lexer, thus invisible to the parser.
 
 Grammar in Extended Backus–Naur Form (EBNF) below
 https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form
@@ -83,8 +83,8 @@ https://en.wikipedia.org/wiki/Order_of_operations
 Primary statement
 -----------------
 
-<syntax> = <stmt> <stmt-list> [ <matching-cond> ]
-             { "|" <stmt2> ( <params> | <expr> [...] ) }
+<syntax> = <stmt> <stmt-list> [ <matching-cond> ] <temp-cond>
+            { "|" <stmt2> ( <params> | <expr> [...] ) }
 
 <stmt> = FIND
 
