@@ -57,7 +57,7 @@ type lexer_regex struct {
 var lexer_regex_table = []lexer_regex{
 	{tag: "command", regex: `(?i)^FIND\b`},
 	{tag: "cmdspec", regex: `(?i)^ALL\b`},
-	{tag: "command2", regex: `(?i)^SORT|GROUP|DISTINCT\b`},
+	{tag: "command2", regex: `(?i)^(SORT|GROUP|DISTINCT)\b`},
 	{tag: "pipe", regex: `^[|]`},
 	{tag: "condition", regex: `(?i)^MATCHING\b`},
 	// temporal base
@@ -72,10 +72,10 @@ var lexer_regex_table = []lexer_regex{
 	{tag: "weekdays", regex: `(?i)^(MONDAYS|TUESDAYS|WEDNESDAYS|THURSDAYS|FRIDAYS|SATURDAYS|SUNDAYS)\b`},
 	{tag: "mon", regex: `(?i)^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)`},
 	{tag: "months", regex: `(?i)^(JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER)`},
-	{tag: "string", regex: `^('[^']*'|"[^"]*")`},              // strings (single or double quotes)
-	{tag: "ident", regex: `^([a-zA-Z_][a-zA-Z_.@$]*)`},        // identifiers
-	{tag: "int", regex: `^([-+]?\d+([eE]+?\d+)?)`},            // integers, optional E notation
-	{tag: "float", regex: `^([-+]?\d*\.?\d+([eE][-+]?\d+)?)`}, // floating point values
+	{tag: "string", regex: `^('[^']*'|"[^"]*")`},                                    // strings (single or double quotes)
+	{tag: "ident", regex: `^([a-zA-Z_][a-zA-Z_.@$]*)|(\[[a-zA-Z_][a-zA-Z_.@$]*)\]`}, // identifiers
+	{tag: "int", regex: `^([-+]?\d+([eE]+?\d+)?)`},                                  // integers, optional E notation
+	{tag: "float", regex: `^([-+]?\d*\.?\d+([eE][-+]?\d+)?)`},                       // floating point values
 	// comma and parentheses
 	{tag: "comma", regex: `^,`},    // comma
 	{tag: "lparen", regex: `^[(]`}, // opening parenthesis
@@ -175,7 +175,7 @@ var lexer_symbol_table = map[string]int{
 	"SORT":     sym_sort,
 	"GROUP":    sym_group,
 	"DISTINCT": sym_distinct,
-	"ALL":      sym_distinct,
+	"ALL":      sym_all,
 	"|":        sym_pipe,
 	"MATCHING": sym_matching,
 	// Temporals
@@ -216,9 +216,10 @@ var lexer_symbol_table = map[string]int{
 
 // Lexer token structure, an array of these is passed to the parser
 type lexer_token struct {
-	tag   string // regex tag from the regex pattern array
-	token int    // token, or 0 for literals and identifiers
-	val   string // value for literals and identifiers, or ""
+	tag      string // regex tag from the regex pattern array
+	token    int    // token, or 0 for literals and identifiers
+	val      string // value for literals and identifiers, or ""
+	stmt_pos int    // position of this token in the query string
 }
 
 // EOF

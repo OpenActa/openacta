@@ -53,6 +53,7 @@ func lexer(s string) ([]lexer_token, error) {
 
 	// Tokenise the statement
 	var tokens []lexer_token
+	var stmt_pos int
 
 	// Tokenise statement(s)
 	for len(s) > 0 {
@@ -65,9 +66,10 @@ func lexer(s string) ([]lexer_token, error) {
 				switch lexer_regex_table[i].tag {
 				case "string": // remove quotes
 					result = result[1 : len(result)-1]
+				case "ident": // values and identifiers are not in the token table
+					result = strings.Trim(result, "[]") // remove brackets - would also accept [[field]] but meh
 				case "int":
 				case "float":
-				case "ident": // values and identifiers are not in the token table
 				default: // the rest are (or should be!) in the token table
 					token, exists := lexer_symbol_table[result]
 					if exists {
@@ -80,12 +82,16 @@ func lexer(s string) ([]lexer_token, error) {
 
 				newtoken.tag = lexer_regex_table[i].tag
 				newtoken.val = result
+				newtoken.stmt_pos = stmt_pos
 
 				tokens = append(tokens, newtoken)
 
-				s = lexer_regex_table[i].compiled.ReplaceAllString(s, "") // remove this token
-				s = strings.TrimSpace(s)                                  // remove surrounding whitespace (if applicable)
-				match = true                                              // we found a match
+				s2 := lexer_regex_table[i].compiled.ReplaceAllString(s, "") // remove this token
+				s2 = strings.TrimSpace(s2)                                  // remove surrounding whitespace (if applicable)
+				stmt_pos += len(s) - len(s2)                                // start of next token
+				s = s2
+
+				match = true // we found a match
 				break
 			}
 		}
