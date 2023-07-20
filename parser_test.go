@@ -1,4 +1,4 @@
-// OpenActa - Test statements (used by lexer_test and parser_test)
+// OpenActa - Parser tests
 // Copyright (C) 2023 Arjen Lentz & Lentz Pty Ltd; All Rights Reserved
 // <arjen (at) openacta (dot) dev>
 
@@ -17,10 +17,32 @@
 
 package openacta
 
-var statements = []string{
-	"FIND src_ip SINCE LAST HOUR | SORT src_ip",
-	"FIND [dest_ip] MATCHING src_ip='192.168.0.1' AND dest_port=80 SINCE YESTERDAY | DISTINCT src_ip",
-	"FIND dest_ip MATCHING src_ip='192.168.0.1' BETWEEN 3 AND 6 MONTHS AGO | SORT dest_ip",
+import (
+	"fmt"
+	"os"
+	"testing"
+)
+
+func TestParser(t *testing.T) {
+
+	for i := range statements {
+		tokens, error := lexer(statements[i]) // first return value is tokens array
+		if error != nil {
+			t.Fatalf("Lexer error: %s", error)
+		}
+
+		fmt.Fprintf(os.Stderr, "%v\n\n", tokens)
+
+		var parser Parser
+		parser.query = statements[i]
+		parser.tokens = tokens
+		parser.num_tokens = len(tokens)
+		fmt.Fprintf(os.Stderr, "%v\n", parser)
+		error = parser.parser()
+		if error != nil {
+			t.Fatalf("Parser error: %s", error)
+		}
+	}
 }
 
 // EOF

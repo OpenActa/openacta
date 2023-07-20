@@ -74,14 +74,14 @@ var lexer_regex_table = []lexer_regex{
 	{tag: "months", regex: `(?i)^(JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER)`},
 	{tag: "string", regex: `^('[^']*'|"[^"]*")`},                                    // strings (single or double quotes)
 	{tag: "ident", regex: `^([a-zA-Z_][a-zA-Z_.@$]*)|(\[[a-zA-Z_][a-zA-Z_.@$]*)\]`}, // identifiers
-	{tag: "int", regex: `^([-+]?\d+([eE]+?\d+)?)`},                                  // integers, optional E notation
-	{tag: "float", regex: `^([-+]?\d*\.?\d+([eE][-+]?\d+)?)`},                       // floating point values
+	{tag: "int", regex: `^(\d+([eE]+?\d+)?)`},                                       // integers, optional E notation
+	{tag: "float", regex: `^(\d*\.?\d+([eE][-+]?\d+)?)`},                            // floating point values
 	// comma and parentheses
 	{tag: "comma", regex: `^,`},    // comma
 	{tag: "lparen", regex: `^[(]`}, // opening parenthesis
 	{tag: "rparen", regex: `^[)]`}, // closing parenthesis
 	// Binary operands
-	{tag: "minus", regex: `^-`},           // minus
+	{tag: "minus", regex: `^-`},           // minus/sign
 	{tag: "plus", regex: `^[+]`},          // plus
 	{tag: "equal", regex: `^=|==`},        // equal
 	{tag: "not_equal", regex: `^(!=|<>)`}, // not equal
