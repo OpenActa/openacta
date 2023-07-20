@@ -190,6 +190,7 @@ Temporal conditions (temp-cond)
 <temp-ref> = FOREVER
             | [ DAY BEFORE ] YESTERDAY
             | LAST <reltime-ref>
+            | <abstime-ref>
             | <reltime-ref> BEFORE LAST
             | <int-literal> <reltime-ref> AGO
 
@@ -197,6 +198,9 @@ Temporal conditions (temp-cond)
             | <weekday-ref>
             | <month-ref>
             | <calendar-ref>
+
+<abstime-ref> = '"' <YYYY> - <MM> - <DD> ' ' [ <HH> : MM [ : SS ] ] '"'
+            | <HH> : <MM> [ : <SS> ]
 
 <clock-ref> = SECOND | MINUTE | HOUR
             | SECONDS | MINUTES | HOURS
