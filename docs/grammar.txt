@@ -91,12 +91,12 @@ Primary statement
 <stmt-list> = ALL
             | ( <stmt-sublist> [ { <comma <stmt-sublist> } ] )
 
-<stmt-sublist> = <derived-key>
-            | ( <key-prefix> <period> <asterisk> )
+<stmt-sublist> = <derived-field>
+            | ( <field-prefix> <period> <asterisk> )
 
-<derived-key> = <val-expr> [ <as-clause> ]
+<derived-field> = <val-expr> [ <as-clause> ]
 
-<as-clause> = AS <key-name>
+<as-clause> = AS <field-name>
 
 <val-expr> = <num-val-expr>
             | <string-val-expr>
@@ -115,12 +115,12 @@ Primary statement
 <num-primary> = <val-expr-primary>
 
 <val-expr-primary> = <unsigned-val-spec>
-            | <key-ref>
+            | <field-ref>
             | ( <left-paren> <val-expr> <right-paren> )
 
 <unsigned-val-spec> = <unsigned-literal>
 
-<key-ref> = [ <key-prefix> <period> ] <key-name>
+<field-ref> = [ <field-prefix> <period> ] <field-name>
 
 <unsigned-literal> := <num-val>
 
@@ -199,8 +199,8 @@ Temporal conditions (temp-cond)
             | <month-ref>
             | <calendar-ref>
 
-<abstime-ref> = '"' <YYYY> - <MM> - <DD> ' ' [ <HH> : MM [ : SS ] ] '"'
-            | <HH> : <MM> [ : <SS> ]
+<abstime-ref> = '"' <YYYY> - <MM> - <DD> [ ' ' <HH> : MM  : SS ] '"'
+            | <HH> : <MM> : <SS>
 
 <clock-ref> = SECOND | MINUTE | HOUR
             | SECONDS | MINUTES | HOURS
