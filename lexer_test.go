@@ -18,8 +18,6 @@
 package openacta
 
 import (
-	"fmt"
-	"os"
 	"testing"
 )
 
@@ -30,7 +28,8 @@ func TestLexer(t *testing.T) {
 		if error != nil {
 			t.Fatalf("Lexer error: %s", error)
 		}
-		fmt.Fprintf(os.Stderr, "%v\n\n", tokens)
+		_ = tokens
+		//fmt.Fprintf(os.Stderr, "%v\n\n", tokens)	// DEBUG
 	}
 }
 

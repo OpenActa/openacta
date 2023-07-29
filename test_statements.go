@@ -18,9 +18,25 @@
 package openacta
 
 var statements = []string{
-	"FIND src_ip SINCE LAST HOUR | SORT src_ip",
-	"FIND [dest_ip] MATCHING src_ip='192.168.0.1' AND dest_port=80 SINCE YESTERDAY | DISTINCT src_ip",
+	"FIND src_ip SINCE LAST YEAR",
+	"FIND src_ip SINCE LAST QUARTER",
+	"FIND src_ip SINCE LAST MONTH",
+	"FIND src_ip SINCE LAST FORTNIGHT",
+	"FIND src_ip SINCE LAST WEEK",
+	"FIND src_ip SINCE LAST DAY",
+	"FIND src_ip SINCE LAST APRIL",
+	"FIND src_ip SINCE 1 YEAR AGO",
+	"FIND src_ip SINCE LAST TUESDAY",
+	"FIND src_ip SINCE LAST HOUR",
+	"FIND src_ip BETWEEN '2020-05-04' AND '2022-10-09'",
+	"FIND src_ip BETWEEN MONTH BEFORE LAST AND LAST MONTH",
+	"FIND src_ip BETWEEN DAY BEFORE YESTERDAY AND YESTERDAY",
+	"FIND src_ip,dest_ip BETWEEN LAST MONTH AND 1 FORTNIGHT AGO",
+	"FIND src_ip,dest_ip BETWEEN LAST MONTH AND LAST FORTNIGHT",
+	"FIND src_ip,dest_ip BETWEEN LAST MONTH AND FORTNIGHT AGO", // should error
+	"FIND dest_ip MATCHING src_ip='192.168.0.1' SINCE LAST WEEK | SORT dest_ip",
 	"FIND dest_ip MATCHING src_ip='192.168.0.1' BETWEEN 3 AND 6 MONTHS AGO | SORT dest_ip",
+	"FIND [dest_ip] MATCHING src_ip='192.168.0.1' AND dest_port=80 SINCE YESTERDAY | DISTINCT src_ip",
 }
 
 // EOF

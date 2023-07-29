@@ -31,13 +31,14 @@ func TestParser(t *testing.T) {
 			t.Fatalf("Lexer error: %s", error)
 		}
 
-		fmt.Fprintf(os.Stderr, "%v\n\n", tokens)
+		_ = tokens
+		// fmt.Fprintf(os.Stderr, "%v\n\n", tokens) // DEBUG
 
 		var parser Parser
 		parser.query = statements[i]
 		parser.tokens = tokens
 		parser.num_tokens = len(tokens)
-		fmt.Fprintf(os.Stderr, "%v\n", parser)
+		fmt.Fprintf(os.Stderr, "\n=====\n%v\n", parser)
 		error = parser.parser()
 		if error != nil {
 			t.Fatalf("Parser error: %s", error)
