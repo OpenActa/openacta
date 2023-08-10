@@ -77,16 +77,19 @@ var lexer_regex_table = []lexer_regex{
 	{tag: "as", regex: `(?i)^(AS)\b`}, // AS alias
 	{tag: "lparen", regex: `^[(]`},    // opening parenthesis
 	{tag: "rparen", regex: `^[)]`},    // closing parenthesis
+	// integers and floating point values - not in symbols list (sym_none)
+	{tag: "int", regex: `(?i)^([-+]?\d+([E]+?\d+)?)`},            // integers, optional E notation
+	{tag: "float", regex: `(?i)^([-+]?\d*\.?\d+([E][-+]?\d+)?)`}, // floating point values
 	// Binary operands
-	{tag: "minus", regex: `^-`},           // minus/sign
+	{tag: "minus", regex: `^-`},           // minus
 	{tag: "plus", regex: `^[+]`},          // plus
-	{tag: "equal", regex: `^=|==`},        // equal
-	{tag: "not_equal", regex: `^(!=|<>)`}, // not equal
 	{tag: "mul", regex: `^\*`},            // multiply
 	{tag: "div", regex: `(?i)^(/|DIV)\b`}, // divide
 	{tag: "mod", regex: `(?i)^(%|MOD)\b`}, // modulo
 	{tag: "less_equal", regex: `^<=`},     // lesser or equal
 	{tag: "greater_equal", regex: `^>=`},  // greater or equal
+	{tag: "equal", regex: `^=|==`},        // equal
+	{tag: "not_equal", regex: `^(!=|<>)`}, // not equal
 	{tag: "less", regex: `^<`},            // less
 	{tag: "greater", regex: `^>`},         // greater
 	// Binary operators
@@ -94,13 +97,14 @@ var lexer_regex_table = []lexer_regex{
 	{tag: "or", regex: `(?i)^(OR)\b`},   // OR
 	// Unary operator
 	{tag: "not", regex: `(?i)^(!|NOT)\b`}, // NOT
-	// pattern matcher
-	{tag: "like", regex: `(?i)^(LIKE)\b`}, // LIKE
-	// strings, identifiers, integers and floating point values - not in symbols list (sym_none)
-	{tag: "string", regex: `^('[^']*'|"[^"]*")`},                                    // strings (single or double quotes)
-	{tag: "ident", regex: `^([a-zA-Z_][a-zA-Z_.@$]*)|(\[[a-zA-Z_][a-zA-Z_.@$]*)\]`}, // identifiers
-	{tag: "int", regex: `^(\d+([eE]+?\d+)?)`},                                       // integers, optional E notation
-	{tag: "float", regex: `^(\d*\.?\d+([eE][-+]?\d+)?)`},                            // floating point values
+	// pattern matchers
+	{tag: "like", regex: `(?i)^(LIKE)\b`},
+	{tag: "regex", regex: `(?i)^(REGEX)\b`},
+	// strings not in symbols list (sym_none) - (single or double quotes)
+	{tag: "string", regex: `^('[^']*'|"[^"]*")`},
+	// identifiers not in symbols list (sym_none) - always last after all keywords
+	{tag: "ident", regex: `^([a-zA-Z_][a-zA-Z_.@$]*)|(\[[a-zA-Z_][a-zA-Z_.@$]*)\]`},
+	// nothing here, ever
 }
 
 // Enumeration of all symbols, order doesn't matter as long as "sym_none = iota" is first
@@ -155,19 +159,20 @@ const (
 	sym_rparen
 	sym_minus
 	sym_plus
-	sym_equal
-	sym_not_equal
 	sym_mul
 	sym_div
 	sym_mod
 	sym_less_equal
 	sym_greater_equal
+	sym_equal
+	sym_not_equal
 	sym_less
 	sym_greater
 	sym_and
 	sym_or
 	sym_not
 	sym_like
+	sym_regex
 )
 
 // string -> symbol look-up, order does not matter as long as everything is in here.
@@ -193,8 +198,8 @@ var lexer_symbol_table = map[string]int{
 	"MONDAY": sym_monday, "TUESDAY": sym_tuesday, "WEDNESDAY": sym_wednesday,
 	"MONDAYS": sym_monday, "TUESDAYS": sym_tuesday, "WEDNESDAYS": sym_wednesday,
 	"THURSDAY": sym_thursday, "FRIDAY": sym_friday,
-	"SATURDAY": sym_saturday, "SUNDAY": sym_sunday,
 	"THURSDAYS": sym_thursday, "FRIDAYS": sym_friday,
+	"SATURDAY": sym_saturday, "SUNDAY": sym_sunday,
 	"SATURDAYS": sym_saturday, "SUNDAYS": sym_sunday,
 	"JAN": sym_january, "FEB": sym_february, "MAR": sym_march,
 	"APR": sym_april, "MAY": sym_may, "JUN": sym_june,
@@ -207,12 +212,13 @@ var lexer_symbol_table = map[string]int{
 	// Operators
 	",": sym_comma, "(": sym_lparen, ")": sym_rparen,
 	"-": sym_minus, "+": sym_plus,
-	"=": sym_equal, "<>": sym_not_equal, "!=": sym_not_equal,
 	"*": sym_mul, "/": sym_div, "DIV": sym_div, "%": sym_mod, "MOD": sym_mod,
 	"<=": sym_less_equal, ">=": sym_greater_equal, "<": sym_less, ">": sym_greater,
+	"=": sym_equal, "<>": sym_not_equal, "!=": sym_not_equal,
 	"AND": sym_and, "OR": sym_or,
 	"NOT": sym_not, "!": sym_not,
-	"LIKE": sym_like,
+	"LIKE":  sym_like,
+	"REGEX": sym_regex,
 	// Functions
 }
 
