@@ -180,6 +180,7 @@ func (p *Parser) do_or_cond() error {
 	// put the item in the or_list
 	p.or_list[len(p.or_list)-1] = &new_or_item
 
+	// Do we have any (more) AND clauses?
 	// look-ahead(1), kinda
 	for p.tokens[p.token_index].token == sym_and {
 		p.token_index++
@@ -200,7 +201,7 @@ func (p *Parser) do_matching_cond() error {
 		return err
 	}
 
-	// Do we have any more OR clauses?
+	// Do we have any (more) OR clauses?
 	// look-ahead(1), kinda
 	for p.tokens[p.token_index].token == sym_or {
 		p.token_index++
