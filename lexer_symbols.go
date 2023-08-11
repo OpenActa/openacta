@@ -88,7 +88,7 @@ var lexer_regex_table = []lexer_regex{
 	{tag: "mod", regex: `(?i)^(%|MOD)\b`}, // modulo
 	{tag: "less_equal", regex: `^<=`},     // lesser or equal
 	{tag: "greater_equal", regex: `^>=`},  // greater or equal
-	{tag: "equal", regex: `^=|==`},        // equal
+	{tag: "equal", regex: `^(==|=)`},      // equal
 	{tag: "not_equal", regex: `^(!=|<>)`}, // not equal
 	{tag: "less", regex: `^<`},            // less
 	{tag: "greater", regex: `^>`},         // greater
@@ -100,14 +100,18 @@ var lexer_regex_table = []lexer_regex{
 	// pattern matchers
 	{tag: "like", regex: `(?i)^(LIKE)\b`},
 	{tag: "regex", regex: `(?i)^(REGEX)\b`},
+	// language constructs
+	{tag: "in", regex: `(?i)^(IN)\b`},
 	// strings not in symbols list (sym_none) - (single or double quotes)
 	{tag: "string", regex: `^('[^']*'|"[^"]*")`},
 	// identifiers not in symbols list (sym_none) - always last after all keywords
+	// functions() check with lookahead(1) that there's a '(' following the function name
+	// ...
 	{tag: "ident", regex: `^([a-zA-Z_][a-zA-Z_.@$]*)|(\[[a-zA-Z_][a-zA-Z_.@$]*)\]`},
-	// nothing here, ever
 }
 
 // Enumeration of all symbols, order doesn't matter as long as "sym_none = iota" is first
+// However, for debugging purposes, please keep grouping and ordering same as above.
 const (
 	sym_none = iota
 	sym_find
@@ -173,9 +177,11 @@ const (
 	sym_not
 	sym_like
 	sym_regex
+	sym_in
 )
 
 // string -> symbol look-up, order does not matter as long as everything is in here.
+// However, for debugging purposes, please keep grouping and ordering same as above.
 var lexer_symbol_table = map[string]int{
 	// Commands
 	"FIND":     sym_find,
@@ -209,16 +215,20 @@ var lexer_symbol_table = map[string]int{
 	"APRIL": sym_april /* MAY dup */, "JUNE": sym_june,
 	"JULY": sym_july, "AUGUST": sym_august, "SEPTEMBER": sym_september,
 	"OCTOBER": sym_october, "NOVEMBER": sym_november, "DECEMBER": sym_december,
-	// Operators
+	// Operands/operators
 	",": sym_comma, "(": sym_lparen, ")": sym_rparen,
 	"-": sym_minus, "+": sym_plus,
 	"*": sym_mul, "/": sym_div, "DIV": sym_div, "%": sym_mod, "MOD": sym_mod,
-	"<=": sym_less_equal, ">=": sym_greater_equal, "<": sym_less, ">": sym_greater,
+	"<=": sym_less_equal, ">=": sym_greater_equal,
 	"=": sym_equal, "<>": sym_not_equal, "!=": sym_not_equal,
+	"<": sym_less, ">": sym_greater,
 	"AND": sym_and, "OR": sym_or,
 	"NOT": sym_not, "!": sym_not,
+	// Pattern matchers
 	"LIKE":  sym_like,
 	"REGEX": sym_regex,
+	// Language constructs
+	"IN": sym_in,
 	// Functions
 }
 

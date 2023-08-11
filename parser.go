@@ -32,28 +32,42 @@ import (
 */
 
 type Parser struct {
-	query         string        // Original query string, for error reporting and tracing
-	tokens        []lexer_token // Token slice from the lexer
-	num_tokens    int           // Number of tokens in the statement
-	token_index   int           // token index of the parser, during processing
-	fields        []string      // List of fields to return from query
-	field_aliases []string      // List of field aliases to return from query
-	find_flags    byte          // ALL fields
-	time_from     int64         // Earliest time we want
-	time_to       int64         // Latest time we want
-	itemtree      *item         // base of item tree
+	query       string        // Original query string, for error reporting and tracing
+	tokens      []lexer_token // Token slice from the lexer
+	num_tokens  int           // Number of tokens in the statement
+	token_index int           // token index of the parser, during processing
+
+	fields        []string // List of fields to return from query
+	field_aliases []string // List of field aliases to return from query
+	find_flags    byte     // ALL fields
+
+	time_from int64 // Earliest time we want
+	time_to   int64 // Latest time we want
+
+	or_list []*or_item // base of item slice
 }
 
 const (
 	find_flags_all = 0b_00000001
 )
 
-type item struct {
+type item struct { // item leaves
 	lexer_sym int
 	lexer_tag *string
 	lexer_val *string
-	left      *item
-	right     *item
+}
+
+type or_item struct { // OR items
+	this     item
+	left     item
+	right    item
+	and_list []*and_item
+}
+
+type and_item struct { // AND items (within OR)
+	this  item
+	left  item
+	right item
 }
 
 const ( // We use the int64 unix epoch: nanoseconds since 1 Jan 1970
@@ -83,35 +97,97 @@ func (p *Parser) do_val_expr(newitem *item) error {
 	return nil
 }
 
-// only do "=" and "AND" for now, whole matching-cond functionality later
-func (p *Parser) do_search_cond() error {
-	var newitem, left_item, right_item item
+func (p *Parser) do_and_cond() error {
+	var new_and_item and_item
 
 	fmt.Fprintf(os.Stderr, "%s(): %v\n", CurrentFunctionName(), p.tokens[p.token_index])
 
-	if err := p.do_val_expr(&left_item); err != nil {
+	or_ofs := len(p.or_list) - 1
+	if p.or_list[or_ofs].and_list != nil {
+		p.or_list[or_ofs].and_list = append(p.or_list[or_ofs].and_list, &and_item{})
+	} else {
+		p.or_list[or_ofs].and_list = make([]*and_item, 1, 10)
+	}
+
+	if err := p.do_val_expr(&new_and_item.left); err != nil {
 		return err
 	}
-	newitem.left = &left_item
 	p.token_index++
 
 	if p.token_index+2 >= p.num_tokens {
 		return fmt.Errorf("MATCHING statement cut short at '%s'", p.query[p.tokens[p.token_index].stmt_pos:])
 	}
 
-	if p.tokens[p.token_index].token != sym_equal {
+	switch p.tokens[p.token_index].token {
+	case sym_equal:
+		break
+		// others to follow, will also change errormsg below
+	default:
 		return fmt.Errorf("expected equal (=) sign at '%s'", p.query[p.tokens[p.token_index].stmt_pos:])
 	}
-	newitem.lexer_sym = sym_equal
-	p.token_index++ // Skip past '=' keyword/token
 
-	if err := p.do_val_expr(&right_item); err != nil {
+	p.do_val_expr(&new_and_item.this)
+	p.token_index++ // Skip past comparison keyword/token
+
+	if err := p.do_val_expr(&new_and_item.right); err != nil {
 		return err
 	}
-	newitem.right = &right_item
 	p.token_index++
 
-	p.itemtree = &newitem
+	// put the and_item in the or_list
+	p.or_list[or_ofs].and_list[len(p.or_list[or_ofs].and_list)-1] = &new_and_item
+
+	return nil
+}
+
+// only do "=" and "AND" for now, whole matching-cond functionality later
+func (p *Parser) do_or_cond() error {
+	var new_or_item or_item
+
+	fmt.Fprintf(os.Stderr, "%s(): %v\n", CurrentFunctionName(), p.tokens[p.token_index])
+
+	if p.or_list != nil {
+		p.or_list = append(p.or_list, &or_item{})
+	} else {
+		p.or_list = make([]*or_item, 1, 10)
+	}
+
+	if err := p.do_val_expr(&new_or_item.left); err != nil {
+		return err
+	}
+	p.token_index++
+
+	if p.token_index+2 >= p.num_tokens {
+		return fmt.Errorf("MATCHING statement cut short at '%s'", p.query[p.tokens[p.token_index].stmt_pos:])
+	}
+
+	switch p.tokens[p.token_index].token {
+	case sym_equal:
+		break
+		// others to follow, will also change errormsg below
+	default:
+		return fmt.Errorf("expected equal (=) sign at '%s'", p.query[p.tokens[p.token_index].stmt_pos:])
+	}
+
+	p.do_val_expr(&new_or_item.this)
+	p.token_index++ // Skip past comparison keyword/token
+
+	if err := p.do_val_expr(&new_or_item.right); err != nil {
+		return err
+	}
+	p.token_index++
+
+	// put the item in the or_list
+	p.or_list[len(p.or_list)-1] = &new_or_item
+
+	// look-ahead(1), kinda
+	for p.tokens[p.token_index].token == sym_and {
+		p.token_index++
+
+		if err := p.do_and_cond(); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -119,12 +195,20 @@ func (p *Parser) do_search_cond() error {
 func (p *Parser) do_matching_cond() error {
 	fmt.Fprintf(os.Stderr, "%s(): %v\n", CurrentFunctionName(), p.tokens[p.token_index])
 
-	//for p.token_index < p.num_tokens; p.token_index++ {
-	if err := p.do_search_cond(); err != nil {
+	// First item in MATCHING clause is regarded as an OR, inside the parser structure
+	if err := p.do_or_cond(); err != nil {
 		return err
 	}
 
-	//}
+	// Do we have any more OR clauses?
+	// look-ahead(1), kinda
+	for p.tokens[p.token_index].token == sym_or {
+		p.token_index++
+
+		if err := p.do_or_cond(); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -342,20 +426,22 @@ func (p *Parser) do_temp_ref(t *int64, end bool) error {
 			if error := p.do_reltime_ref(&clock_ref, int_literal, end); error != nil {
 				return error
 			}
-		} else if tt, err := time.Parse(time.DateTime, p.tokens[p.token_index].val); err == nil {
-			// Could be an ISO-8601 / RFC-3339 datetime (without timezone)
-			// See https://www.iso.org/iso-8601-date-and-time-format.html
-			// and https://www.rfc-editor.org/rfc/rfc3339
-			// TODO: test fail BETWEEN '2020-05-04' AND '2022-10-09' ends up BETWEEN 2020-05-04 10:00:00 AND 2022-10-09 10:00:00
-			clock_ref = tt.UTC().UnixNano()
-		} else if tt, err := time.Parse(time.DateOnly, p.tokens[p.token_index].val); err == nil {
-			clock_ref = tt.UTC().UnixNano()
-		} else if tt, err := time.Parse(time.TimeOnly, p.tokens[p.token_index].val); err == nil {
-			clock_ref = tt.UTC().UnixNano()
-		} else { // Something invalid/unknown
-			return fmt.Errorf("invalid temporal reference at '%s'", p.query[p.tokens[p.token_index].stmt_pos:])
+		} else {
+			if tt, err := time.Parse(time.DateTime, p.tokens[p.token_index].val); err == nil {
+				// Could be an ISO-8601 / RFC-3339 datetime (without timezone)
+				// See https://www.iso.org/iso-8601-date-and-time-format.html
+				// and https://www.rfc-editor.org/rfc/rfc3339
+				// TODO: test fail BETWEEN '2020-05-04' AND '2022-10-09' ends up BETWEEN 2020-05-04 10:00:00 AND 2022-10-09 10:00:00
+				clock_ref = tt.UTC().UnixNano()
+			} else if tt, err := time.Parse(time.DateOnly, p.tokens[p.token_index].val); err == nil {
+				clock_ref = tt.UTC().UnixNano()
+			} else if tt, err := time.Parse(time.TimeOnly, p.tokens[p.token_index].val); err == nil {
+				clock_ref = tt.UTC().UnixNano()
+			} else { // Something invalid/unknown
+				return fmt.Errorf("invalid temporal reference at '%s'", p.query[p.tokens[p.token_index].stmt_pos:])
+			}
+			p.token_index++
 		}
-		p.token_index++
 	default:
 		// Syntactically, "... BEFORE LAST" and "... AGO" should be handled here, not in do_reltime_ref()
 		if error := p.do_reltime_ref(&clock_ref, int_literal, end); error != nil {
@@ -609,6 +695,19 @@ func (p *Parser) parser() error {
 		_ = cmd2
 		//return fmt.Errorf("sub-commands not yet implemented: %v", cmd2)
 	}
+
+	// DEBUG
+	fmt.Fprintf(os.Stderr, "Parsed OR structure:\n")
+	for i := 0; i < len(p.or_list); i++ {
+		fmt.Fprintf(os.Stderr, "OR %s %s %s", *p.or_list[i].left.lexer_val, *p.or_list[i].this.lexer_tag, *p.or_list[i].right.lexer_val)
+		for j := 0; p.or_list != nil && j < len(p.or_list[i].and_list); j++ {
+			//fmt.Fprintf(os.Stderr, " AND %v", p.or_list[i].and_list[j])
+			fmt.Fprintf(os.Stderr, " AND %s %s %s", *p.or_list[i].and_list[j].left.lexer_val, *p.or_list[i].and_list[j].this.lexer_tag, *p.or_list[i].and_list[j].right.lexer_val)
+		}
+		fmt.Fprintln(os.Stderr)
+	}
+	fmt.Fprintln(os.Stderr)
+	// DEBUG
 
 	return nil // Parsing completed successfully
 }
