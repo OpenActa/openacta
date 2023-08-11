@@ -1,4 +1,4 @@
-// OpenActa - Lexer tests
+// OpenActa - Parser tests
 // Copyright (C) 2023 Arjen Lentz & Lentz Pty Ltd; All Rights Reserved
 // <arjen (at) openacta (dot) dev>
 
@@ -18,18 +18,31 @@
 package openacta
 
 import (
+	"fmt"
+	"os"
 	"testing"
 )
 
-func TestLexer(t *testing.T) {
+func TestParser(t *testing.T) {
 
 	for i := range statements {
 		tokens, error := lexer(statements[i]) // first return value is tokens array
 		if error != nil {
 			t.Fatalf("Lexer error: %s", error)
 		}
+
 		_ = tokens
-		//fmt.Fprintf(os.Stderr, "%v\n\n", tokens)	// DEBUG
+		// fmt.Fprintf(os.Stderr, "%v\n\n", tokens) // DEBUG
+
+		var parser Parser
+		parser.query = statements[i]
+		parser.tokens = tokens
+		parser.num_tokens = len(tokens)
+		fmt.Fprintf(os.Stderr, "\n=====\n%v\n", parser)
+		error = parser.parser()
+		if error != nil {
+			t.Fatalf("Parser error: %s", error)
+		}
 	}
 }
 
