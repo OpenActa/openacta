@@ -39,5 +39,6 @@ var statements = []string{
 	"FIND dest_ip MATCHING src_ip='192.168.0.1' BETWEEN 3 MONTHS AGO AND 6 MONTHS AGO | SORT dest_ip",
 	"FIND [dest_ip] MATCHING src_ip='192.168.0.1' AND dest_port=80 SINCE YESTERDAY | DISTINCT src_ip",
 	"FIND src_ip,dest_ip MATCHING src_ip='192.168.0.1' OR src_ip='192.168.1.1' AND dest_port=80 SINCE LAST TUESDAY",
+}
 
 // EOF
