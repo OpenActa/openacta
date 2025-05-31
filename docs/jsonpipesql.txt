@@ -1,0 +1,40 @@
+By Arjen Lentz, arjen (at) openacta (dot) dev
+2025-05-31 Write-up for Antony
+
+We looked at defining our own query syntax, using pipes like many log analysers do.
+However, why create yet another language that people have to learn (or at least understand 
+the differences from other similar languages), and complicate potential 
+adaptation of applications to use our backend. 
+
+In our Haystack storage system, the fact that we keep multiple related fields bundled means 
+that it can be viewed as a kind of sparse RDBMS row structure. And every field (column) 
+is indexed.
+To access this storage system, the low level API can borrow from the MySQL/MariaDB 
+pluggable storage engine handler mechanism including "condition pushdown", multikey 
+lookup, etc. 
+See https://dev.mysql.com/doc/dev/mysql-server/latest/classhandler.html
+
+The high-level syntax can use standard SQL as its basis parser and execution engine 
+extended over time, as required, and an optimiser added later), but blended with the 
+pipe syntax. This approach is described in a Google research paper:
+https://storage.googleapis.com/gweb-research2023-media/pubtools/1004848.pdf
+
+We can of course take advantage of the fact that our storage structure is time-linear, we 
+could restrict the search by default to reduce load, and if a specific range is 
+specified we can restrict which files need to be searched.
+These aspects also allow us to make searches distributed: the query execution system 
+passes components of a query (mainly time segmented) to storage nodes that have 
+capacity to process, and then aggregates those results for later execution steps.
+
+It makes sense to wrap queries and responses in a JSON structure. This way additional 
+options can be passed alongside a query, and metadata passed back with a result (such as 
+field names, profiling or debugging information).
+Pipe query languages often add additional attributes for displaying reports, such as 
+colours. These attributes too can be easily accommodated in JSON.
+
+Client/server interaction would be achieved by transmitting the JSON via HTTP(S). 
+Additional fields can be added to the query structure to manage access authentication 
+requirements.
+Further scaling can be achieved by HTTP load balancing to multiple query execution engines.
+
+EOF
